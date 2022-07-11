@@ -1,16 +1,5 @@
----
-title: Matchup satellite data to fish tracks using East Coast tag data
-author: NOAA CoastWatch
-date: March 29, 2022
-output:
-  md_document:
-    variant: gfm
----
-
 # Satellite data matchups to ship tracks or animal tags
->notebook filename | matchup_satellite_fish_tracks_east_coast.Rmd
-history | Created May 2021 - converted to R notebook from xyt_matchup.R
-history | Created Apr 2022 - modified for ECN Fish-tracking class from matchup_satellite_track_data.Rmd
+
 
 This exercise you will extract satellite data around a set of points defined by longitude, latitude, and time coordinates like that produced by an animal telemetry tag, and ship track, or a glider tract. 
 
@@ -25,8 +14,6 @@ The exercise demonstrates the following techniques:
 The satellite data for this exercise is available on the ERDDAP servers listed in the data sets list provided with the class materials. These ERDDAP servers are managed by NOAA CoastWatch, for example: [https://coastwatch.noaa.gov/erddap/](https://coastwatch.noaa.gov/erddap/)
 
 ## Install required packages and load libraries
-
-```{r install,message=FALSE,warning=FALSE}
 
 # Function to check if pkgs are installed, and install any missing pkgs
 
@@ -52,14 +39,13 @@ for (pk in list.of.packages) {
   pkgTest(pk)
 }
 
-```
+
 
 ## Get XYT coordinates
 In this exercise we will load animal tag XYT coordinates from a file. The tracks are of several tagged dusky sharks along the U.S. east coast, courtesy of Dr. Chuck Bangley of the Smithsonian Environmental Research Center. For more info, see:
 
 Bangley, C.W., et al. 2020. Identifying Important Juvenile Dusky Shark Habitat in the Northwest Atlantic Ocean Using Acoustic Telemetry and Spatial Modeling. Marine and Coastal Fisheries 12:348–363. DOI: 10.1002/mcf2.10120 
 
-```{r tag}
 
 # Set your working directory, i.e. the directory where you've put this R code and the tag datafile:
 setwd("~/CW_Satel_Training_Class/2022 Fish-Tracking")
@@ -74,13 +60,11 @@ tagdata <- read.csv(infile,head=TRUE,sep=",");
 # View the structure of the tagdata object (it is an R data frame)
 str(tagdata)
 
-```
 
 We will use the "Date", "Longitude" and "Latitude" variables to get the matching satellite data. 
 
 Often date information needs to be converted into a different date format. (Remember R syntax is Y for a 4 digit year and y for a 2 digit year.)
 
-```{r rename}
 
 # Read the tagdata column values 
 ## For convenience make shorter names for the variables  
@@ -95,7 +79,6 @@ tcoord <- tagdata$Date
 #    YYYY-mm-dd, which is what is returned by as.Date
 tcoord <- as.character(as.Date(tcoord, "%m/%d/%Y"))
 
-```
 
 ## Select the satellite dataset and download its metadata from ERDDAP
 For this example we will use the Suomi-NPP VIIRS weekly chlorophyll 4km dataset (Dataset ID: noaacwNPPVIIRSSQchlaWeekly)  
@@ -113,7 +96,6 @@ https://coastwatch.noaa.gov/erddap/
 * The ERDDAP server: url <- 'https://coastwatch.noaa.gov/erddap/'
 * The dataset ID: dataset <- 'noaacwNPPVIIRSSQchlaWeekly'
 
-```{r dataInfo}
 
 url <- "https://coastwatch.noaa.gov/erddap/"
 dataset <- 'noaacwNPPVIIRSSQchlaWeekly'
@@ -132,7 +114,6 @@ dataInfo <- rerddap::info(dataset,url=url)
 # Display the metadata
 dataInfo
 
-```
 
 ## Extract the satellite data  
 
@@ -154,8 +135,6 @@ Note that in both 'rxtracto()' and 'rxtracto_3D()' functions, the zcoord can be 
 * Define the search "radius" for the satellite data. The rxtracto function allows you to set the "radius" (x & y dimensions of a box) used to average the satellite data around the track points. Use the rxtracto xlen and ylen arguments. The values for xlen and ylen are in degrees. For our example we 0.2 degrees for both arguments. Note: You can also submit vectors for xlen and ylen, as long as the are the same length as xcoord, ycoord, and tcoord
 
 * Run the rxtracto function to extract the data from ERDDAP.  
-
-```{r rxtracto, message=FALSE}
 
 parameter <- 'chlor_a'    #Chlorophyll, Suomi-NPP VIIRS, CW-Central ERDDAP server
 #parameter <- 'chlorophyll'  #Chlorophyll, Aqua MODIS, WCN ERDDAP server
@@ -182,11 +161,9 @@ snpp_weekly_chl <- rxtracto(dataInfo,
 #                                   tcoord = tcoord, 
 #                                   xlen=xlen, ylen=ylen)
 
-```
 
 After the extraction is complete, "snpp_weekly_chl" will contain the following columns.
 
-```{r snpp_weekly_chl}
 str(snpp_weekly_chl)
 
 #List of 13
@@ -206,7 +183,7 @@ str(snpp_weekly_chl)
 # - attr(*, "row.names")= chr [1:417] "1" "2" "3" "4" ...
 # - attr(*, "class")= chr [1:2] "list" "rxtractoTrack"
 
-```
+
 
 ## Plotting the results
 
@@ -215,7 +192,6 @@ We will use the 'plotTrack' function to plot the results.
 
 * The example below uses a color palette specifically designed for chlorophyll.
 
-```{r plot}
 
 # PlotTrack may not show the image. If so, uncomment this png line and 
 # the dev.off() line (below) to save the image
@@ -229,17 +205,14 @@ plotTrack(snpp_weekly_chl, xcoord, ycoord, tcoord, plotColor = 'algae')
 #Possible error in dev.off() : cannot shut down device 1 (the null device)
 #if(dev.cur() > 1) dev.off()
 
-```
 
 ## Animating the tracks
 
 Make a cumulative animation of the tracks. It will take several minutes to collect the data into an animation-encoded image (because there are 417 total location points). After the image encoding completes, the animation will run in the Rstudio viewer window.
 
-```{r track}
-
 plotTrack(snpp_weekly_chl, xcoord, ycoord, tcoord, plotColor = 'algae', animate = TRUE, cumulative = TRUE)
 
-```
+
 
 ## Map Method 2: ggplot graphics  
 
@@ -253,7 +226,6 @@ Use the *map_data* package to select a base map.
 
 (An alternative to *ggplot2* for geographic mapping is the *ggmap* package.)
 
-```{r adddf}
 
 alltags <- data.frame( x=xcoord, y=ycoord, dataval=snpp_weekly_chl$'mean chlor_a' )
 # Alternate: Chlorophyll, Aqua MODIS, WCN ERDDAP server
@@ -261,13 +233,12 @@ alltags <- data.frame( x=xcoord, y=ycoord, dataval=snpp_weekly_chl$'mean chlor_a
 
 mapWorld <- map_data("world")
 
-```
 
 Make the map.
 
 You can determine the map bounding coordinates by finding the min and max lat/lon coordinates in the tag data file.
 
-```{r map1}
+
 
 mapplot <- ggplot(alltags) + 
   geom_point( aes( x, y, color=dataval ), size=2. ) + 
@@ -280,7 +251,7 @@ mapplot <- ggplot(alltags) +
 # Display the map plot in the RStudio plot window
 mapplot
 
-```
+
 
 Here is an alternate map allowing a different colorscale & labeling, and the map's latitude and longitude labels have been removed.
 
@@ -292,7 +263,6 @@ Note the function differences (see more in R help documentation)
 * scale_color_gradient2 creates a diverging colour gradient (low-mid-high)
 * scale_color_gradientn creates a n-colour gradient (most palettes)
 
-```{r alternate_colorbar_info}
 
 # Set NAs to -1 to find max chlorophyll value
 alltags$dataval[is.na(alltags$dataval)] <- -1
@@ -312,7 +282,6 @@ mapplot <- ggplot(alltags) +
 
 mapplot
 
-```
 
 **To select or manipulate colors in the RColorBrewer palettes**
 * This site is useful for working with the RColorBrewer palettes:
@@ -326,7 +295,6 @@ mapplot
 
 **If you have another method to rescale graphics, please use what you're familiar with**
 
-```{r alt_graphics_dimension}
 
 pngfile <- fs::path(knitr::fig_path(), "ggplot_chl_DuskyShark_rescale.png")
 # This method writes the graphic png file to a subdirectory of your working directory.
@@ -349,7 +317,6 @@ ggsave(
   # writing the graphic png file (the default is your working directory)
 )
 
-```
 
 **For more on scaling ggplot2 graphics:**
 [https://www.tidyverse.org/blog/2020/08/taking-control-of-plot-scaling/](https://www.tidyverse.org/blog/2020/08/taking-control-of-plot-scaling/)
@@ -361,7 +328,6 @@ Use a single shark's transmitter number to extract just one shark's locations.
 
 The R 'which' function will return the vector's index values for the single shark's transmitter number. Then using the index, subset the "alltags" data frame for just the single shark. Put the subsetted columns into a new data frame.
 
-```{r subset_tagdata_single_shark}
 
 transm <- tagdata$Transmitter
 shark1 <- transm[1]    # selects the first value from transm
@@ -371,7 +337,6 @@ shark1_index <- which(transm == shark1)
 # Create the data frame with lon, lat and chl for the single shark
 single_shark <- data.frame ( x_shark = alltags$x[shark1_index], y_shark = alltags$y[shark1_index], dataval_shark = alltags$dataval[shark1_index])
 
-```
 
 ## Alternate method for subsetting all tags for individual sharks
 
@@ -379,7 +344,6 @@ Another way to subset the tag data file for individual sharks is to use R's 'sub
 
 This method may make more sense when you need to easily refer to a transmitter number later, although both methods can be modified to write a loop for extracting a shark's information one shark at a time.
 
-```{r alternate_subset_tagdata}
 
 # From above:
 #transm <- tagdata$Transmitter
@@ -396,13 +360,11 @@ single_shark <- subset(alltags, transmitter == shark1, select = c("x","y","datav
 # example
 colnames(single_shark) <- c('x_shark','y_shark','dataval_shark')
 
-```
 
 ## Plotting the single shark's location points onto a map
 
 Use 'ggplot' to plot the single shark's locations. We cannot use 'plotTrack' because we created a new data frame with the subsetted data; 'plotTrack' only works on output from 'rxtracto'.
 
-```{r plot_single_shark}
 
 # Because there's only one shark, resize the map to zoom in on 
 # this shark's location points
@@ -435,7 +397,6 @@ ggsave(
   # writing the graphic png file (the default is your working directory)
 )
 
-```
 
 ## Plotting track lines between the single shark's location points
 
@@ -448,7 +409,6 @@ To verbalize this in terms of selecting the start and end points of the track li
 The first point (lon,lat) is the start of the first track segment, and the second point (lon,lat) is the end of the first track segment. The second point is also the START of the second track segment, and the third point is the END of the second track segment... and so on... until...
 The next-to-last point is the start of the last segment, and the last point is the end of the last segment.
 
-```{r plotting_track_lines}
 
 # The start and end points of the track lines for all of the single shark's
 # locations
@@ -482,13 +442,12 @@ ggsave(
   #path = "dusky_shark_graphics"
 )
 
-```
+
 
 ## Drawing a boxplot to understand more about the first shark's conditions
 
 Use R's 'boxplot' function, but first divide the first shark's locations by year.
 
-```{r box_plot}
 
 # Add the date information from the tag data file to the single_shark data frame.
 # From above:
@@ -513,11 +472,10 @@ boxplot(shark1_2017$dataval_shark, shark1_2018$dataval_shark,
         # 'at' argument draws boxplots at positions 1,3 with a space in the middle
         )
 
-```
 
 Another way to do this is to extract just the year values from the date_shark column, put the year values into its own column, and then use the *formula feature (~)* of the boxplot function to group chlorophyll by year.
 
-```{r box_plot_alternate}
+
 
 single_shark$year <- format(as.Date(single_shark$date_shark),"%Y")
 
@@ -530,7 +488,7 @@ boxplot(dataval_shark~year,     # "~" groups dataval_shark by year
         ylab = "Chl, mg/cm^3"
 )
 
-```
+
 
 ## In-Class Activity
 
@@ -547,9 +505,6 @@ Tip: You may need to resize the map after adding the second shark to your data f
 Tip: The geom_segment function takes optional arguments such as "color" or "linetype",
      for example, geom_segment( data=..., aes..., color = "red", linetype = "dashed" )
 
-```{r plotting_sst_values}
-
-```
 
 ## Homework Week 2
 
@@ -564,9 +519,6 @@ Tip: The RColorBrewer 'Paired' color palette will give you 12 discrete colors.
 
 If you like, make an image file of one or more of your maps (png, jpeg, etc) and upload them to the Slack discussion forum.
 
-```{r shark_time_map}
-
-```
 ## Homework Week 3: Class project
 
 1) For your assigned parameter, use its DatasetID and the ERDDAP server Make-a-Graph interface to explore your parameter. You may also use the CoastWatch Data Portal if you prefer. How does your parameter change in time and space? Make some time series plots to look at different time scales, e.g. intraseasonal, seasonal, interannual. For spatial changes, you may try comparing how values differ between coastal and open-ocean areas, for example.
@@ -580,7 +532,3 @@ If you like, make an image file of one or more of your maps (png, jpeg, etc) and
 5) Make an image file of your boxplots, and be prepared with a short summary of your results to discuss with the other members of your parameter group. It will help if you also include some image files of the maps and/or time series plots from Step 2.
 
 In class, you will discuss findings in a breakout session with your parameter group. The group will then report back to the class on a consensus finding about the species, using screen share to show some results supporting the group’s findings. Each group will upload a few key images of the group's results to Slack or email the images to the instructors  (including maps, time series plots and/or boxplots as appropriate).
-
-```{r parameter_project}
-
-```
